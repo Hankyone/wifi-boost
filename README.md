@@ -17,7 +17,10 @@ AWDL is Apple's proprietary protocol that enables AirDrop, AirPlay, Handoff, Uni
 - **One-click toggle**: Left-click the menu bar icon to enable/disable boost mode
 - **Visual indicator**: Green bolt = boosted (low latency), Gray bolt = normal
 - **Auto-restore**: Right-click menu option to automatically re-apply boost if the system re-enables AWDL
+- **Launch at Login**: Built-in option to start automatically
 - **Status monitoring**: Polls every 2 seconds to keep the icon in sync with actual system state
+
+![Menu](assets/menu.png)
 
 ## Trade-offs
 
@@ -82,14 +85,8 @@ sudo ifconfig awdl0 up    # Should not prompt for password
 - **Left-click**: Toggle boost on/off
 - **Right-click**: Open menu with options:
   - **Keep Boosted (Auto-restore)**: Automatically re-disable AWDL if the system turns it back on
+  - **Launch at Login**: Start WiFi Boost automatically when you log in
   - **Quit**: Exit the app
-
-## Launch at Login
-
-To have WiFi Boost start automatically:
-
-1. Open **System Settings** → **General** → **Login Items**
-2. Click **+** and add WiFi Boost from your Applications folder
 
 ## Requirements
 
