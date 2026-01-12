@@ -1,0 +1,5 @@
+# WiFi Boost - Allow passwordless AWDL control
+# Install with: sudo visudo -c -f awdl-sudoers && sudo cp awdl-sudoers /etc/sudoers.d/awdl
+
+hankyone ALL=(root) NOPASSWD: /sbin/ifconfig awdl0 down
+hankyone ALL=(root) NOPASSWD: /sbin/ifconfig awdl0 up
