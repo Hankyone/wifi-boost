@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import ServiceManagement
 
 @main
 struct WiFiBoostApp: App {
@@ -65,6 +66,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         keepItem.state = keepBoosted ? .on : .off
         menu.addItem(keepItem)
 
+        // Launch at Login toggle
+        let launchItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        launchItem.target = self
+        launchItem.state = isLaunchAtLoginEnabled() ? .on : .off
+        menu.addItem(launchItem)
+
         menu.addItem(NSMenuItem.separator())
 
         // Quit
@@ -84,6 +91,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             AWDLController.shared.setEnabled(false)
             updateIcon()
         }
+    }
+
+    @objc func toggleLaunchAtLogin() {
+        let service = SMAppService.mainApp
+        do {
+            if service.status == .enabled {
+                try service.unregister()
+            } else {
+                try service.register()
+            }
+        } catch {
+            print("Failed to toggle launch at login: \(error)")
+        }
+    }
+
+    func isLaunchAtLoginEnabled() -> Bool {
+        return SMAppService.mainApp.status == .enabled
     }
 
     @objc func quit() {
