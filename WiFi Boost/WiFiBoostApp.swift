@@ -17,6 +17,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var timer: Timer?
     private var keepBoosted = false
+    private var videoCallBoost: Bool {
+        get { UserDefaults.standard.bool(forKey: "videoCallBoost") }
+        set { UserDefaults.standard.set(newValue, forKey: "videoCallBoost") }
+    }
+    private let cameraMonitor = CameraMonitor()
+    private var boostedByCamera = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -32,10 +38,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             self?.checkAndUpdate()
         }
+
+        // Set up camera monitoring for video call detection
+        cameraMonitor.onCameraStateChanged = { [weak self] isActive in
+            self?.handleCameraStateChanged(isActive)
+        }
+        if videoCallBoost {
+            cameraMonitor.startMonitoring()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         timer?.invalidate()
+        cameraMonitor.stopMonitoring()
     }
 
     @objc func handleClick() {
@@ -65,6 +80,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         keepItem.target = self
         keepItem.state = keepBoosted ? .on : .off
         menu.addItem(keepItem)
+
+        // Boost on Video Calls toggle
+        let videoCallItem = NSMenuItem(title: "Boost on Video Calls", action: #selector(toggleVideoCallBoost), keyEquivalent: "")
+        videoCallItem.target = self
+        videoCallItem.state = videoCallBoost ? .on : .off
+        menu.addItem(videoCallItem)
 
         // Launch at Login toggle
         let launchItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
@@ -123,18 +144,58 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             keepBoosted = false
         }
 
+        // Manual toggle overrides camera-based boost tracking
+        boostedByCamera = false
+
         updateIcon()
     }
 
     func checkAndUpdate() {
         let awdlEnabled = AWDLController.shared.isEnabled()
 
-        // If keep-boosted is on and AWDL got re-enabled, disable it again
-        if keepBoosted && awdlEnabled {
+        // If keep-boosted or camera-boosted and AWDL got re-enabled, disable it again
+        if (keepBoosted || boostedByCamera) && awdlEnabled {
             AWDLController.shared.setEnabled(false)
         }
 
         updateIcon()
+    }
+
+    @objc func toggleVideoCallBoost() {
+        videoCallBoost.toggle()
+        if videoCallBoost {
+            cameraMonitor.startMonitoring()
+            // If camera is already active, boost now
+            if cameraMonitor.isCameraActive {
+                handleCameraStateChanged(true)
+            }
+        } else {
+            // If currently boosted by camera, restore
+            if boostedByCamera {
+                handleCameraStateChanged(false)
+            }
+            cameraMonitor.stopMonitoring()
+        }
+    }
+
+    private func handleCameraStateChanged(_ cameraActive: Bool) {
+        if cameraActive {
+            // Camera turned on — boost if not already boosted
+            if AWDLController.shared.isEnabled() {
+                AWDLController.shared.setEnabled(false)
+                boostedByCamera = true
+                updateIcon()
+            }
+        } else {
+            // Camera turned off — restore if we were the ones who boosted
+            if boostedByCamera {
+                boostedByCamera = false
+                if !keepBoosted {
+                    AWDLController.shared.setEnabled(true)
+                    updateIcon()
+                }
+            }
+        }
     }
 
     func updateIcon() {
